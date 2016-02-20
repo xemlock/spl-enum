@@ -5,7 +5,7 @@
  *
  * SplEnum gives the ability to emulate and create enumeration objects in PHP.
  */
-abstract class Polyfill_SplEnum
+abstract class Polyfill_SplEnum implements Serializable
 {
     const __default = NULL;
 
@@ -58,6 +58,28 @@ abstract class Polyfill_SplEnum
         }
 
         return $constList;
+    }
+
+    public function serialize()
+    {
+        return serialize(array('__default' => $this->__default));
+    }
+
+    public function unserialize($serialized)
+    {
+        // must silently fall back to default value if no value or invalid
+        // value was supplied in the serialized data
+
+        $data = unserialize($serialized);
+        $value = constant(get_class($this) . '::__default');
+
+        if (isset($data['__default']) &&
+            (false !== array_search($data['__default'], self::_getConstList($this), true))
+        ) {
+            $value = $data['__default'];
+        }
+
+        $this->__default = $value;
     }
 
     /**
