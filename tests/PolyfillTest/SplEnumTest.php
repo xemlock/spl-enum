@@ -90,9 +90,9 @@ class PolyfillTest_SplEnumTest extends PHPUnit_Framework_TestCase
 
         $ab1 = unserialize($serialized);
         $this->assertInstanceOf('AB', $ab1);
-        $this->assertEquals(AB::A, (string)$ab1);
+        $this->assertEquals(AB::__default, (string)$ab1);
 
-        $serialized2 = str_replace(';s:1:"a";', ';s:1:"c";', $serialized);
+        $serialized2 = str_replace(';s:1:"a";', ';s:1:"b";', $serialized);
         $ab2 = unserialize($serialized2);
         $this->assertInstanceOf('AB', $ab2);
         $this->assertEquals(AB::__default, (string)$ab2);
