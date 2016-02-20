@@ -94,14 +94,12 @@ abstract class Polyfill_SplEnum
         $class = get_class($object);
 
         if (!isset(self::$__constList[$class])) {
+            $constList = array();
             $refClass = new ReflectionClass($class);
 
-            $constList = $refClass->getConstants();
-            $parentClass = $refClass->getParentClass();
-
-            while ($parentClass) {
-                $constList = array_merge($parentClass->getConstants(), $constList);
-                $parentClass = $parentClass->getParentClass();
+            while ($refClass) {
+                $constList = array_merge($refClass->getConstants(), $constList);
+                $refClass = $refClass->getParentClass();
             }
 
             self::$__constList[$class] = $constList;
