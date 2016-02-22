@@ -15,9 +15,14 @@ abstract class Polyfill_SplEnum implements Serializable
     protected $__default;
 
     /**
+     * @var bool
+     */
+    protected $_strict;
+
+    /**
      * @var array
      */
-    protected static $__constList;
+    protected static $_classConstants;
 
     /**
      * Creates a new value of enumerated type.
@@ -32,15 +37,8 @@ abstract class Polyfill_SplEnum implements Serializable
             $initial_value = constant(get_class($this) . '::__default');
         }
 
-        $constList = self::_getConstList($this);
-
-        if (false === ($const = array_search($initial_value, $constList, $strict))) {
-            throw new UnexpectedValueException(
-                sprintf('Value not a const in enum %s', $this->_getEnumName())
-            );
-        }
-
-        $this->__default = $constList[$const];
+        $this->_strict = (bool) $strict;
+        $this->setValue($initial_value);
     }
 
     /**
@@ -51,7 +49,7 @@ abstract class Polyfill_SplEnum implements Serializable
      */
     public function getConstList($include_default = false)
     {
-        $constList = self::_getConstList($this);
+        $constList = self::_getClassConstants($this);
 
         if (!$include_default) {
             unset($constList['__default']);
@@ -60,17 +58,51 @@ abstract class Polyfill_SplEnum implements Serializable
         return $constList;
     }
 
+    /**
+     * Returns enum value
+     *
+     * @return mixed
+     */
+    public function getValue()
+    {
+        return $this->__default;
+    }
+
+    /**
+     * Sets new enum value
+     *
+     * @param $value
+     */
+    public function setValue($value)
+    {
+        $constList = self::_getClassConstants($this);
+
+        if (false === ($const = array_search($value, $constList, $this->_strict))) {
+            if (__CLASS__ === ($class = get_class($this))) {
+                $class = 'SplEnum';
+            }
+            throw new UnexpectedValueException(
+                sprintf('Value not a const in enum %s', $class)
+            );
+        }
+
+        $this->__default = $constList[$const];
+    }
+
     public function serialize()
     {
+        // Only __default property is exported
         return serialize(array('__default' => $this->__default));
     }
 
     public function unserialize($serialized)
     {
-        // When unserializing, SplEnum value is set to default, see:
+        // When unserializing, SplEnum value is set to __default, see:
         // http://stackoverflow.com/a/25124558
-        $value = constant(get_class($this) . '::__default');
-        $this->__default = $value;
+        $this->__default = constant(get_class($this) . '::__default');
+
+        // and the strict checking is disabled
+        $this->_strict = false;
     }
 
     /**
@@ -82,31 +114,17 @@ abstract class Polyfill_SplEnum implements Serializable
     }
 
     /**
-     * Returns enum name for reporting purposes.
-     *
-     * @return string
-     * @internal
-     */
-    protected function _getEnumName()
-    {
-        if (__CLASS__ === ($name = get_class($this))) {
-            $name = 'SplEnum';
-        }
-        return $name;
-    }
-
-    /**
      * Returns const list defined for the given enumeration instance.
      *
      * @param object $object
      * @return array
      * @internal
      */
-    protected static function _getConstList($object)
+    protected static function _getClassConstants($object)
     {
         $class = get_class($object);
 
-        if (!isset(self::$__constList[$class])) {
+        if (!isset(self::$_classConstants[$class])) {
             $constList = array();
             $refClass = new ReflectionClass($class);
 
@@ -115,9 +133,9 @@ abstract class Polyfill_SplEnum implements Serializable
                 $refClass = $refClass->getParentClass();
             }
 
-            self::$__constList[$class] = $constList;
+            self::$_classConstants[$class] = $constList;
         }
 
-        return self::$__constList[$class];
+        return self::$_classConstants[$class];
     }
 }
